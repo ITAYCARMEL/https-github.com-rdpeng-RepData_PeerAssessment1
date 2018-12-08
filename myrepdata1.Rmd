@@ -1,0 +1,67 @@
+---
+title: "Repro_Assessment1"
+author: "ItayCarmel"
+date: "December 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+###Code for reading in the dataset and/or processing the data
+```{r, echo=TRUE}
+activityF<-unzip("activity.zip")
+mydata<-read.csv(activityF)
+```
+###Histogram of the total number of steps taken each day
+```{r,echo=TRUE}
+ totalsteps<-aggregate(steps~date,sum,data=mydata)
+hist(totalsteps$steps,plot=TRUE, main="Toatal Steps", xlab="Steps")
+```
+
+###Mean and median number of steps taken each day
+```{r,echo=TRUE}
+statperday<-aggregate(steps~date,FUN=function(x)c(median(x[x>0],na.rm = FALSE),mean(x)),data=mydata)
+```
+
+###Time series plot of the average number of steps taken
+```{r,echo=TRUE}
+library(ggplot2)
+avargeperday<-aggregate(steps~date,FUN=,mean,data=mydata)
+ggplot(avargeperday, aes(x=date, y=steps,group=1)) + geom_line(color = "#00AFBB", size = 1) + xlab("Date") + ylab("Daily Avarge")+theme(axis.text.x=element_text(size=6,angle=90))
+```
+
+###The 5-minute interval that, on average, contains the maximum number of steps
+```{r,echo=TRUE}
+maxinterval<-aggregate(steps~interval,mean,data=mydata)
+maxinterval[max(maxinterval$steps),]
+```
+
+###Code to describe and show a strategy for imputing missing data handaling missing values in data can be done with the impueTS package. this package let us impute missing data by replace the missing enteries with the median or mean of the overall dataset.
+
+```{R,echo=TRUE}
+library(imputeTS)
+impdata<-na.mean(mydata, option = "median")
+```
+
+###Histogram of the total number of steps taken each day after missing values are imputed
+```{r,echo=TRUE}
+ total_imp<-aggregate(steps~date,sum,data=impdata)
+hist(total_imp$steps,plot=TRUE, main="Total Steps after imuptation",xlab="Steps")
+```
+
+##Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+```{r,echo=TRUE}
+df<-impdata
+df$day<-strptime(df[,2], "%Y-%m-%d")
+df$weekday<-weekdays(df$day)
+##replace the True/False of Group.2 var to Weekday/Weekend
+df1<-aggregate(df$steps,list(df$interval,df$weekday=="Sunday"|df$weekday=="saturday"),mean)
+levels(df1$Group.2)<-c("Weekday","Weekend")
+df1$Group.2<-as.factor(df1$Group.2)
+ggplot(df1,aes(x=Group.1,y=x))+geom_line()+facet_wrap(.~Group.2)+labs(x="Interval",y="Steps")
+```
